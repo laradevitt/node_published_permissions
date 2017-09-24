@@ -11,6 +11,10 @@ This module is designed to block users from editing or deleting published conten
 
 After enabling this module, activate these permissions for all roles where you wish to maintain status quo (no effect). Deactivate these permissions to prevent roles from editing or deleting published content.
 
+IMPORTANT
+
+This module has not been vetted by the community so use at your own risk!
+
 EXAMPLES
 
 1. User can edit own content, regardless of published status:
@@ -28,4 +32,3 @@ EXAMPLES
 
   Node published permissions  
   [ _ ] Article: Edit own published content
-
