@@ -1,0 +1,102 @@
+<?php
+
+/**
+ * Implements hook_permisson().
+ */
+function node_published_permissions_permission() {
+  $permissions = array();
+
+  // Generate node permissions for all applicable node types.
+  foreach (node_permissions_get_configured_types() as $type) {
+    $permissions += node_published_permissions_list_permissions($type);
+  }
+
+  return $permissions;
+}
+
+/**
+ * Helper function to generate node permission list for a given type.
+ *
+ * @param $type
+ *   The machine-readable name of the node type.
+ * @return
+ *   An array of permission names and description.
+ */
+function node_published_permissions_list_permissions($type) {
+  $name = node_type_get_name($type);
+  $type = check_plain($type);
+
+  $permissions = array(
+    "edit any published $type content" => array(
+      'title' => t('%type_name: Edit any published content', array('%type_name' => $name)),
+    ),
+    "edit own published $type content" => array(
+      'title' => t('%type_name: Edit own published content', array('%type_name' => $name)),
+    ),
+    "delete any published $type content" => array(
+      'title' => t('%type_name: Delete any published content', array('%type_name' => $name)),
+    ),
+    "delete own published $type content" => array(
+      'title' => t('%type_name: Delete own published content', array('%type_name' => $name)),
+    ),
+  );
+
+  return $permissions;
+}
+
+/**
+ * Implements hook_node_access().
+ */
+function node_published_permissions_node_access($node, $op, $account) {
+
+  // Only perform this check on published content.
+  if (is_object($node) && $node->status) {
+
+    $type = is_string($node) ? $node : $node->type;
+
+    if (in_array($type, node_permissions_get_configured_types())) {
+
+      // Deny if user doesn't have permission to edit published content.
+      if ($op == 'update') {
+        if ($account->uid == $node->uid && !user_access('edit own published ' . $type . ' content', $account)) {
+          return NODE_ACCESS_DENY;
+        }
+        if ($account->uid != $node->uid && !user_access('edit any published ' . $type . ' content', $account)) {
+          return NODE_ACCESS_DENY;
+        }
+      }
+      // Deny if user doesn't have permission to delete published content.
+      if ($op == 'delete') {
+        if ($account->uid == $node->uid && !user_access('delete own published ' . $type . ' content', $account)) {
+          return NODE_ACCESS_DENY;
+        }
+        if ($account->uid != $node->uid && !user_access('delete any published ' . $type . ' content', $account)) {
+          return NODE_ACCESS_DENY;
+        }
+      }
+    }
+  }
+  // Otherwise, fall back to regular node access checks.
+  return NODE_ACCESS_IGNORE;
+}
+
+/**
+ * Implements hook_node_type_delete().
+ *
+ * Do some clean-up in the case where a content type is deleted.
+ */
+function node_published_permissions_node_type_delete($info) {
+  $or = db_or();
+  $or->condition('permission', 'edit own published ' . $info->type . ' content');
+  $or->condition('permission', 'edit any published ' . $info->type . ' content');
+  $or->condition('permission', 'delete own published ' . $info->type . ' content');
+  $or->condition('permission', 'delete any published ' . $info->type . ' content');
+
+  db_delete('role_permission')
+    ->condition($or)
+    ->execute();
+
+  // Clear the user access cache.
+  drupal_static_reset('user_access');
+  drupal_static_reset('user_role_permissions');
+}

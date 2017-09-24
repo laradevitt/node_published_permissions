@@ -1,0 +1,37 @@
+<?php
+
+/**
+ * @file
+ */
+
+/**
+ * Implements hook_install().
+ */
+function node_published_permissions_install() {
+
+  module_load_include('module', 'user');
+  module_load_include('module', 'node');
+
+  // Get all roles (excluding anonymous user).
+  $roles = user_roles(TRUE);
+  foreach ($roles as $rid => $role) {
+    $perms = array_values(user_role_permissions(array($rid => $role)));
+    $perms = array_keys($perms[0]);
+
+    // The most sensible defaults.
+    foreach (node_permissions_get_configured_types() as $type) {
+      if (in_array('edit own ' . $type . ' content', $perms)) {
+        user_role_grant_permissions($rid, ['edit own published ' . $type . ' content']);
+      }
+      if (in_array('edit any ' . $type . ' content', $perms)) {
+        user_role_grant_permissions($rid, ['edit any published ' . $type . ' content']);
+      }
+      if (in_array('delete own ' . $type . ' content', $perms)) {
+        user_role_grant_permissions($rid, ['delete own published ' . $type . ' content']);
+      }
+      if (in_array('delete any ' . $type . ' content', $perms)) {
+        user_role_grant_permissions($rid, ['delete any published ' . $type . ' content']);
+      }
+    }
+  }
+}
