@@ -1,6 +1,6 @@
 # Node published permissions
 
-This module provides a few new node access checks for each content type:
+This Drupal module provides a few new node access checks for each content type:
 
 * Edit any published content
 * Edit own published content
